@@ -62,7 +62,14 @@ class UserController extends AbstractController
             return new JsonResponse(['error' => 'User not found'], Response::HTTP_NOT_FOUND);
         }
 
-        return new JsonResponse($this->userSerializer->serialize($user), Response::HTTP_OK);
+        return new JsonResponse([
+            'userId' => $user->getUserId(),
+            'firstName' => $user->getFirstName(),
+            'lastName' => $user->getLastName(),
+            'avatar' => $user->getAvatar(),
+            'email' => $user->getEmail(),
+            // Add any other fields needed by the frontend
+        ]);
     }
 
 
@@ -81,9 +88,6 @@ class UserController extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         // Update the user with new data
-        if (isset($data['username'])) {
-            $user->setUsername($data['username']);
-        }
         if (isset($data['password'])) {
             // Hash the new password
             $hashedPassword = $this->passwordHasher->hashPassword($user, $data['password']);
@@ -94,6 +98,9 @@ class UserController extends AbstractController
         }
         if (isset($data['last_name'])) {
             $user->setLastName($data['last_name']);
+        }
+        if (isset($data['avatar'])) {
+            $user->setLastName($data['avatar']);
         }
         if (isset($data['email'])) {
             $user->setEmail($data['email']);

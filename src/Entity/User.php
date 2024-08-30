@@ -21,9 +21,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private UuidInterface $userId;
 
     #[ORM\Column(length: 255)]
-    private ?string $username = null;
-
-    #[ORM\Column(length: 255)]
     private ?string $password = null;
 
     #[ORM\Column(length: 30)]
@@ -31,6 +28,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 30)]
     private ?string $lastName = null;
+
+    #[ORM\Column(type: "string", length: 255)]
+    private ?string $avatar = null;
 
     #[ORM\Column(nullable: true, unique: true)]
     private ?string $phoneNumber = null;
@@ -40,6 +40,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column]
     private ?bool $isAdmin = false;
+
+    #[ORM\Column]
+    private ?bool $isVerified = false;
 
     #[ORM\OneToMany(mappedBy: 'propertyOwner', targetEntity: Property::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $properties;
@@ -60,18 +63,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getUserIdentifier(): string
     {
-        return $this->email; // or $this->username if you prefer
-    }
-
-    public function getUsername(): ?string
-    {
-        return $this->username;
-    }
-
-    public function setUsername(string $username): static
-    {
-        $this->username = $username;
-        return $this;
+        return $this->email; 
     }
 
     public function getPassword(): ?string
@@ -107,6 +99,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getAvatar(): ?string
+    {
+        return $this->avatar;
+    }
+
+    public function setAvatar(?string $avatar): static
+    {
+        $this->avatar = $avatar;
+        return $this;
+    }
+
     public function getPhoneNumber(): ?string
     {
         return $this->phoneNumber;
@@ -137,6 +140,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAdmin(bool $isAdmin): static
     {
         $this->isAdmin = $isAdmin;
+        return $this;
+    }
+    public function isVerified(): ?bool
+    {
+        return $this->isVerified;
+    }
+
+    public function setVerified(bool $isVerified): static
+    {
+        $this->isVerified = $isVerified;
         return $this;
     }
 
@@ -174,7 +187,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeProperty(Property $property): static
     {
         if ($this->properties->removeElement($property)) {
-            // Set the owning side to null (unless already changed)
             if ($property->getPropertyOwner() === $this) {
                 $property->removePropertyOwner();
             }

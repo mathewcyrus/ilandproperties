@@ -24,7 +24,24 @@ class PropertySerializer
             'property_age' => $property->getPropertyAge(),
             'date_posted' => $property->getDatePosted()->format('Y-m-d H:i:s'),
             'property_owner' => $property->getPropertyOwner() ? $property->getPropertyOwner()->getUserId() : null,
+            'property_owner_name' => $property->getPropertyOwnerName(),
+            'thumbnail' => $property->getThumbnail(),
             'images' => $images,
         ];
     }
+
+    public function serializeProperties(array $properties): array
+    {
+        $serializedProperties = [];
+        foreach ($properties as $property) {
+            if ($property instanceof Property) {
+                $serializedProperties[] = $this->serialize($property);
+            } else {
+            
+                throw new \InvalidArgumentException('Expected instance of Property, got ' . gettype($property));
+            }
+        }
+        return $serializedProperties;
+    }
+
 }

@@ -40,6 +40,12 @@ class Property
     #[ORM\JoinColumn(name: "user_id", referencedColumnName: "user_id", nullable: false)]
     private ?User $propertyOwner = null;
 
+    #[ORM\Column(type: "string", length: 255)]
+    private ?string $propertyOwnerName = null;
+
+    #[ORM\Column(type: "string", length: 255)]
+    private ?string $thumbnail = null;
+
     #[ORM\OneToMany(targetEntity: Image::class, mappedBy: 'property', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $images;
 
@@ -129,10 +135,31 @@ class Property
         $this->propertyOwner = $propertyOwner;
         return $this;
     }
+    public function getPropertyOwnerName(): ?string
+    {
+        return $this->propertyOwnerName;
+    }
+
+    public function setPropertyOwnerName(string $propertyOwnerName): static
+    {
+        $this->propertyOwnerName = $propertyOwnerName;
+        return $this;
+    }
 
     public function removePropertyOwner(): static
     {
         $this->propertyOwner = null;
+        return $this;
+    }
+
+    public function getThumbnail(): ?string
+    {
+        return $this->thumbnail;
+    }
+
+    public function setThumbnail(?string $thumbnail): static
+    {
+        $this->thumbnail = $thumbnail;
         return $this;
     }
 

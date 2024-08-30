@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class JWTService
 {
-    private $secretKey;
+    private string $secretKey;
     private $algorithm;
 
     public function __construct(string $secretKey, string $algorithm)

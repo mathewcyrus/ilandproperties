@@ -7,6 +7,7 @@ use App\Entity\Property;
 use App\Entity\User;
 use App\Service\PropertySerializer;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -34,7 +35,10 @@ class PropertyController extends AbstractController
         $property->setPropertyPrice($data['property_price']);
         $property->setPropertyLocation($data['property_location']);
         $property->setPropertyAge($data['property_age']);
-        $property->setDatePosted(new \DateTime($data['date_posted']));
+        $property->setPropertyOwnerName($data['property_owner_name']);
+        $property->setDatePosted(new \DateTime());
+        $property->setThumbnail($data['thumbnail']);
+
 
         $user = $this->entityManager->getRepository(User::class)->find($data['property_owner']);
         if ($user) {
@@ -61,7 +65,7 @@ class PropertyController extends AbstractController
     }
 
     //Get a single property
-    #[Route('/property/{id}', name: 'get_property', methods: ['GET'])]
+    #[Route('/properties/{id}', name: 'get_property', methods: ['GET'])]
     public function getProperty(string $id): JsonResponse
     {
         $property = $this->entityManager->getRepository(Property::class)->find($id);
@@ -95,22 +99,116 @@ class PropertyController extends AbstractController
         return new JsonResponse(array_map([$this->propertySerializer, 'serialize'], $properties));
     }
 
-    //get all properties
+
+
     #[Route('/properties', name: 'get_all_properties', methods: ['GET'])]
-    public function getAllProperties(): JsonResponse
+    public function getAllProperties(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 10);
+        $filter = $request->query->get('filter', 'All');
+        $excludePropertyId = $request->query->get('excludePropertyId', null);
 
-        // Fetch all properties from the database
-        $properties = $this->entityManager->getRepository(Property::class)->findAll();
+        $repository = $this->entityManager->getRepository(Property::class);
+        $queryBuilder = $repository->createQueryBuilder('p');
 
-        if (empty($properties)) {
-            return $this->json(['message' => 'No properties found'], JsonResponse::HTTP_NOT_FOUND);
+        if ($filter !== 'All') {
+            $queryBuilder->where('p.propertyType = :filter')
+                        ->setParameter('filter', $filter);
         }
 
-        // Serialize and return the properties
-        return new JsonResponse(array_map([$this->propertySerializer, 'serialize'], $properties));
+        if ($excludePropertyId) {
+            $queryBuilder->andWhere('p.propertyId != :excludePropertyId')
+                        ->setParameter('excludePropertyId', $excludePropertyId);
+        }
+
+        $query = $queryBuilder->getQuery();
+        $paginator = new Paginator($query, true); // true to enable count queries
+
+        // Total count of items
+        $totalCount = count($paginator);
+
+        // Set the pagination limits
+        $query->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
+
+        // Execute the query to get the paginated results
+        $properties = $query->getResult();
+
+        // Serialize the results
+        $serializedProperties = array_map([$this->propertySerializer, 'serialize'], $properties);
+
+        return new JsonResponse([
+            'properties' => $serializedProperties,
+            'totalCount' => $totalCount,
+        ]);
     }
+
+
+
+
+
+
+
+// #[Route('/properties', name: 'get_all_properties', methods: ['GET'])]
+// public function getAllProperties(Request $request): JsonResponse
+// {
+//     // Pagination parameters
+//     $page = (int) $request->query->get('page', 1);
+//     $limit = (int) $request->query->get('limit', 10);
+//     $filter = $request->query->get('filter', 'All');
+
+//     $repository = $this->entityManager->getRepository(Property::class);
+//     $queryBuilder = $repository->createQueryBuilder('p');
+
+
+//     if ($filter !== 'All') {
+//         $queryBuilder->andWhere('p.propertyType = :filter')
+//                      ->setParameter('filter', $filter);
+//     }
+//     // Get total count for pagination
+//     $totalCount = $queryBuilder->select('COUNT(p.propertyId)')
+//                                ->getQuery()
+//                                ->getSingleScalarResult();
+
+
+//     // Build the main query
+//     $propertiesQuery = $queryBuilder->getQuery()
+//                                     ->setFirstResult(($page - 1) * $limit)
+//                                     ->setMaxResults($limit);
+
+                                    
+//     // Fetch results
+//     $properties = $propertiesQuery->getResult();
+//     dd($properties); // Check the content of $properties
+
+//     // Serialize properties if they are valid
+//     $serializedProperties = $this->propertySerializer->serializeProperties($properties);
+
+//     return $this->json([
+//         'properties' => $serializedProperties,
+//         'totalCount' => $totalCount,
+//     ]);
+// }
+
+
+
+// //get all properties
+// #[Route('/properties', name: 'get_all_properties', methods: ['GET'])]
+// public function getAllProperties(): JsonResponse
+// {
+//     // $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+//     // Fetch all properties from the database
+//     $properties = $this->entityManager->getRepository(Property::class)->findAll();
+
+//     if (empty($properties)) {
+//         return $this->json(['message' => 'No properties found'], JsonResponse::HTTP_NOT_FOUND);
+//     }
+
+//     // Serialize and return the properties
+//     return new JsonResponse(array_map([$this->propertySerializer, 'serialize'], $properties));
+// }
 
 
 

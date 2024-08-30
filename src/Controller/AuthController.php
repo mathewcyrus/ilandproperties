@@ -6,7 +6,6 @@ use App\Entity\User;
 use App\Service\JWTService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,24 +33,26 @@ class AuthController extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         // Check if required fields are present
-        if (!isset($data['username'], $data['password'], $data['first_name'], $data['last_name'], $data['email'])) {
+        if (!isset( $data['password'], $data['first_name'], $data['last_name'], $data['email'])) {
             return new JsonResponse(['error' => 'Missing required fields'], Response::HTTP_BAD_REQUEST);
         }
 
         $user = new User();
-        $user->setUsername($data['username']);
         
         // Hash the password
         $hashedPassword = $this->passwordHasher->hashPassword($user, $data['password']);
         $user->setPassword($hashedPassword);
+        
 
         $user->setFirstName($data['first_name']);
         $user->setLastName($data['last_name']);
         $user->setEmail($data['email']);
-        
+        $user->setAvatar($data['avatar']);
         // Set isAdmin to false by default if not provided
         $isAdmin = isset($data['is_admin']) ? $data['is_admin'] : false;
         $user->setAdmin($isAdmin);
+        $isVerified = isset($data['is_verified']) ? $data['is_verified'] : false;
+        $user->setVerified($isVerified);
 
         // Optionally set other fields if they are provided
         if (isset($data['phone_number'])) {
@@ -71,7 +72,7 @@ class AuthController extends AbstractController
     }
 
     
-   #[Route('/login', name: 'login_user', methods: ['POST'])]
+    #[Route('auth/login', name: 'login_user', methods: ['POST'])]
     public function loginUser(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -97,18 +98,13 @@ class AuthController extends AbstractController
             $token = $this->jwtService->createToken($payload);
 
             // Create a response
-            $response = new JsonResponse(['message' => 'Logged in successfully']);
-            $response->setContent(json_encode(['message' => 'Logged in successfully']));
-            $response->headers->set('Content-Type', 'application/json');
-
-            // Set the token in a cookie
-            $cookie = new Cookie('auth_token', $token, time() + 3600, '/', null, true, true);
-            $response->headers->setCookie($cookie);
+            $response = new JsonResponse(['message' => 'Logged in successfully', 'token' => $token]);
+            
 
             return $response;
         } catch (\RuntimeException $e) {
             return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-}
 
+}
